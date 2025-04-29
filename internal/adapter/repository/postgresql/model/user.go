@@ -1,6 +1,10 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"github.com/hydr0g3nz/wallet_topup_system/internal/domain/user"
+
+	"gorm.io/gorm"
+)
 
 // User represents the users table
 type User struct {
@@ -13,4 +17,26 @@ type User struct {
 	// relationship
 	Transactions []Transaction `gorm:"constraint:OnDelete:CASCADE"` // One-to-Many
 	Wallet       Wallet        `gorm:"constraint:OnDelete:CASCADE"` // One-to-One
+}
+
+func CreateUserFromDomain(u user.User) User {
+	return User{
+		Model:     gorm.Model{ID: u.ID},
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email,
+		Password:  u.Password,
+		Phone:     u.Phone,
+	}
+}
+
+func (u User) ToDomain() user.User {
+	return user.User{
+		ID:        u.ID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email,
+		Password:  u.Password,
+		Phone:     u.Phone,
+	}
 }

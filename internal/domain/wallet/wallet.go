@@ -7,3 +7,15 @@ type Wallet struct {
 	ID      uint
 	Balance vo.Money
 }
+
+func (w Wallet) ToNotEmptyValueMap() map[string]interface{} {
+	result := make(map[string]interface{})
+	if !w.Balance.IsZero() {
+		result["balance"] = w.Balance.Amount()
+	}
+	return result
+}
+
+type WalletFilter struct {
+	Balance *vo.Money
+}
