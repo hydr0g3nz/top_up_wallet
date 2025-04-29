@@ -8,17 +8,39 @@ import (
 
 // Transaction represents the transactions table
 type Transaction struct {
-	ID            uint
-	UserID        uint
-	Amount        float64
-	PaymentMethod vo.PaymentMethod
-	Status        vo.TransactionStatus
-	ExpiresAt     time.Time
+	ID            uint                 `json:"id"`
+	UserID        uint                 `json:"user_id"`
+	Amount        vo.Money             `json:"amount"`
+	PaymentMethod vo.PaymentMethod     `json:"payment_method"`
+	Status        vo.TransactionStatus `json:"status"`
+	ExpiresAt     time.Time            `json:"expires_at"`
 }
 
+func NewTransaction(UserID uint, amount float64, paymentMethod string, status string, expiresAt time.Time) (Transaction, error) {
+
+	newPaymentMethod, err := vo.NewPaymentMethod(paymentMethod)
+	if err != nil {
+		return Transaction{}, err
+	}
+	newStatus, err := vo.NewTransactionStatus(status)
+	if err != nil {
+		return Transaction{}, err
+	}
+	newAmount, err := vo.NewMoney(amount)
+	if err != nil {
+		return Transaction{}, err
+	}
+	return Transaction{
+		UserID:        UserID,
+		Amount:        newAmount,
+		PaymentMethod: newPaymentMethod,
+		Status:        newStatus,
+		ExpiresAt:     expiresAt,
+	}, nil
+}
 func (t Transaction) ToNotEmptyValueMap() map[string]interface{} {
 	result := make(map[string]interface{})
-	if t.Amount != 0 {
+	if !t.Amount.IsZero() {
 		result["amount"] = t.Amount
 	}
 	if t.PaymentMethod != "" {

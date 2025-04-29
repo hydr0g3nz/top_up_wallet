@@ -40,27 +40,38 @@ func (r *TransactionRepository) FindAll(filter *transaction.TransactionFilter) (
 	}
 	transactions := make([]transaction.Transaction, len(transactionModels))
 	for i, tm := range transactionModels {
-		transactions[i] = tm.ToDomain()
+		t, err := tm.ToDomain()
+		if err != nil {
+			return nil, err
+		}
+		transactions[i] = *t
 	}
 
 	return transactions, nil
 }
 
-func (r *TransactionRepository) FindById(id uint) (transaction.Transaction, error) {
+func (r *TransactionRepository) FindById(id uint) (*transaction.Transaction, error) {
 	var transactionModel model.Transaction
 	if err := r.db.First(&transactionModel, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return transaction.Transaction{}, errors.New("transaction not found")
+			return nil, errors.New("not found")
 		}
-		return transaction.Transaction{}, err
+		return nil, err
 	}
-	return transactionModel.ToDomain(), nil
+	t, err := transactionModel.ToDomain()
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
-func (r *TransactionRepository) Create(transaction transaction.Transaction) error {
+func (r *TransactionRepository) Create(transaction transaction.Transaction) (uint, error) {
 	transactionModel := model.CreateTransactionFromDomain(transaction)
-	return r.db.Create(&transactionModel).Error
+	if err := r.db.Create(&transactionModel).Error; err != nil {
+		return 0, err
+	}
+	return transactionModel.ID, nil
 }
 func (r *TransactionRepository) Update(transaction transaction.Transaction) error {
-	return r.db.Updates(transaction.ToNotEmptyValueMap()).Error
+	return r.db.Model(&model.Transaction{}).Where("id = ?", transaction.ID).Updates(transaction.ToNotEmptyValueMap()).Error
 }

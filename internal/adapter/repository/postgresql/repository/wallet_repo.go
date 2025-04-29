@@ -20,5 +20,16 @@ func (r *WalletRepository) Create(wallet wallet.Wallet) error {
 }
 
 func (r *WalletRepository) Update(wallet wallet.Wallet) error {
-	return r.db.Updates(wallet.ToNotEmptyValueMap()).Error
+	return r.db.Model(&model.Wallet{}).Where("id = ?", wallet.ID).Updates(wallet.ToNotEmptyValueMap()).Error
+}
+func (r *WalletRepository) FindById(id uint) (*wallet.Wallet, error) {
+	var walletModel model.Wallet
+	if err := r.db.Take(&walletModel, id).Error; err != nil {
+		return nil, err
+	}
+	w, err := walletModel.ToDomain()
+	if err != nil {
+		return nil, err
+	}
+	return &w, nil
 }

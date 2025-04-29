@@ -3,7 +3,7 @@ package vo
 import (
 	"fmt"
 
-	"github.com/hydr0g3nz/wallet_topup_system/internal/domain"
+	err "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
 )
 
 type Money struct {
@@ -12,7 +12,7 @@ type Money struct {
 
 func NewMoney(amount float64) (Money, error) {
 	if amount < 0 {
-		return Money{}, domain.ErrNegativeAmount
+		return Money{}, err.ErrNegativeAmount
 	}
 	return Money{amount: amount}, nil
 }
@@ -27,7 +27,7 @@ func (m Money) Add(other Money) Money {
 
 func (m Money) Subtract(other Money) (Money, error) {
 	if m.amount < other.amount {
-		return Money{}, domain.ErrInsufficientBalance
+		return Money{}, err.ErrInsufficientBalance
 	}
 	return Money{amount: m.amount - other.amount}, nil
 }

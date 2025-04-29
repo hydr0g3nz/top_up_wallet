@@ -60,10 +60,10 @@ func (r *UserRepository) FindById(id uint) (user.User, error) {
 	return userModel.ToDomain(), nil
 }
 
-func (r *UserRepository) Save(user user.User) error {
+func (r *UserRepository) Create(user user.User) error {
 	userModel := model.CreateUserFromDomain(user)
 	return r.db.Create(&userModel).Error
 }
 func (r *UserRepository) Update(user user.User) error {
-	return r.db.Updates(user.ToNotEmptyValueMap()).Error
+	return r.db.Model(&model.User{}).Where("id = ?", user.ID).Updates(user.ToNotEmptyValueMap()).Error
 }

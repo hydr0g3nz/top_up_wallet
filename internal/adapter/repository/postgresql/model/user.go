@@ -14,9 +14,6 @@ type User struct {
 	Email     string `gorm:"size:100;uniqueIndex;not null"`
 	Password  string `gorm:"size:255;not null"`
 	Phone     string `gorm:"size:20;not null"`
-	// relationship
-	Transactions []Transaction `gorm:"constraint:OnDelete:CASCADE"` // One-to-Many
-	Wallet       Wallet        `gorm:"constraint:OnDelete:CASCADE"` // One-to-One
 }
 
 func CreateUserFromDomain(u user.User) User {

@@ -18,21 +18,33 @@ type Transaction struct {
 	ExpiresAt     time.Time `gorm:"not null"`
 }
 
-func (t Transaction) ToDomain() transaction.Transaction {
-	return transaction.Transaction{
+func (t Transaction) ToDomain() (*transaction.Transaction, error) {
+	paymentMethod, err := vo.NewPaymentMethod(t.PaymentMethod)
+	if err != nil {
+		return nil, err
+	}
+	status, err := vo.NewTransactionStatus(t.Status)
+	if err != nil {
+		return nil, err
+	}
+	amount, err := vo.NewMoney(t.Amount)
+	if err != nil {
+		return nil, err
+	}
+	return &transaction.Transaction{
 		ID:            t.ID,
 		UserID:        t.UserID,
-		Amount:        t.Amount,
-		PaymentMethod: vo.PaymentMethod(t.PaymentMethod),
-		Status:        vo.TransactionStatus(t.Status),
+		Amount:        amount,
+		PaymentMethod: paymentMethod,
+		Status:        status,
 		ExpiresAt:     t.ExpiresAt,
-	}
+	}, nil
 }
 func CreateTransactionFromDomain(t transaction.Transaction) Transaction {
 	return Transaction{
 		Model:         gorm.Model{ID: t.ID},
 		UserID:        t.UserID,
-		Amount:        t.Amount,
+		Amount:        t.Amount.Amount(),
 		PaymentMethod: t.PaymentMethod.String(),
 		Status:        t.Status.String(),
 		ExpiresAt:     t.ExpiresAt,
