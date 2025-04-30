@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/hydr0g3nz/wallet_topup_system/internal/adapter/repository/postgresql/model"
+	errs "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
 	"github.com/hydr0g3nz/wallet_topup_system/internal/domain/transaction"
 	"gorm.io/gorm"
 )
@@ -16,6 +17,12 @@ func NewTransactionRepository(db *gorm.DB) *TransactionRepository {
 	return &TransactionRepository{db: db}
 }
 func getQueryFromTrancsactionFilter(tx *gorm.DB, filter *transaction.TransactionFilter) *gorm.DB {
+	if filter == nil {
+		return tx
+	}
+	if filter.ID != nil {
+		tx = tx.Where("id = ?", filter.ID)
+	}
 	if filter.PaymentMethod != nil {
 		tx = tx.Where("payment_method = ?", filter.PaymentMethod.String())
 	}
@@ -54,7 +61,7 @@ func (r *TransactionRepository) FindById(id uint) (*transaction.Transaction, err
 	var transactionModel model.Transaction
 	if err := r.db.First(&transactionModel, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("not found")
+			return nil, errs.ErrNotFound
 		}
 		return nil, err
 	}
@@ -72,6 +79,13 @@ func (r *TransactionRepository) Create(transaction transaction.Transaction) (uin
 	}
 	return transactionModel.ID, nil
 }
-func (r *TransactionRepository) Update(transaction transaction.Transaction) error {
-	return r.db.Model(&model.Transaction{}).Where("id = ?", transaction.ID).Updates(transaction.ToNotEmptyValueMap()).Error
+func (r *TransactionRepository) Update(filter *transaction.TransactionFilter, transaction transaction.Transaction) error {
+	query := r.db.Model(&model.Transaction{})
+	query = getQueryFromTrancsactionFilter(query, filter)
+	if result := query.Updates(transaction.ToNotEmptyValueMap()); result.Error != nil {
+		return result.Error
+	} else if result.RowsAffected == 0 {
+		return errs.ErrNotFound
+	}
+	return nil
 }

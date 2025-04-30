@@ -1,8 +1,9 @@
 package vo
 
 import (
-	"errors"
 	"strings"
+
+	errs "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
 )
 
 type PaymentMethod string
@@ -23,7 +24,7 @@ func (p PaymentMethod) Valid() bool {
 func NewPaymentMethod(method string) (PaymentMethod, error) {
 	pm := PaymentMethod(strings.ToLower(method))
 	if !pm.Valid() {
-		return "", errors.New("invalid payment method")
+		return "", errs.ErrInvalidPaymentMethod
 	}
 	return pm, nil
 }

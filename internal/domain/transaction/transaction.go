@@ -56,6 +56,7 @@ func (t Transaction) ToNotEmptyValueMap() map[string]interface{} {
 }
 
 type TransactionFilter struct {
+	ID            *uint
 	PaymentMethod *vo.PaymentMethod
 	Status        *vo.TransactionStatus
 	Amount        *vo.Money

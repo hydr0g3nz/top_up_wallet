@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/hydr0g3nz/wallet_topup_system/internal/adapter/repository/postgresql/model"
+	errs "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
 	"github.com/hydr0g3nz/wallet_topup_system/internal/domain/user"
 	"gorm.io/gorm"
 )
@@ -52,7 +53,7 @@ func (r *UserRepository) FindById(id uint) (user.User, error) {
 	var userModel model.User
 	if err := r.db.First(&userModel, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return user.User{}, errors.New("user not found")
+			return user.User{}, errs.ErrNotFound
 		}
 		return user.User{}, err
 	}

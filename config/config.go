@@ -15,6 +15,10 @@ type Config struct {
 	Database infrastructure.DBConfig
 	Cache    infrastructure.CacheConfig
 	LogLevel string
+	App      appConfig
+}
+type appConfig struct {
+	MaxAcceptedAmount float64
 }
 
 // ServerConfig holds server configuration
@@ -61,6 +65,9 @@ func LoadFromEnv() *Config {
 			Password: getEnv("REDIS_PASSWORD", ""),
 			Db:       getEnvAsInt("REDIS_DB", 0),
 		},
+		App: appConfig{
+			MaxAcceptedAmount: getEnvAsFloat("MAX_ACCEPTED_AMOUNT", 100000.0),
+		},
 		LogLevel: getEnv("LOG_LEVEL", "info"),
 	}
 }
@@ -76,6 +83,15 @@ func getEnvAsInt(key string, defaultValue int) int {
 		intValue, err := strconv.Atoi(value)
 		if err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+func getEnvAsFloat(key string, defaultValue float64) float64 {
+	if value, exists := os.LookupEnv(key); exists {
+		floatValue, err := strconv.ParseFloat(value, 64)
+		if err == nil {
+			return floatValue
 		}
 	}
 	return defaultValue

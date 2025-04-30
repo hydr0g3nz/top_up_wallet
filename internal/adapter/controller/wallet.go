@@ -20,69 +20,45 @@ func NewWalletController(walletUseCase usecase.WalletUsecase) *WalletController 
 
 // VerifyTopup handles the verification of a top-up request
 func (c *WalletController) VerifyTopup(ctx *fiber.Ctx) error {
-	// Parse request body
 	var req dto.VerifyRequest
 	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request format",
+		return HandleError(ctx, err)
+	}
+
+	if req.UserID == 0 || req.Amount <= 0 || req.PaymentMethod == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
+			Status:  fiber.StatusBadRequest,
+			Message: "UserID, Amount, and PaymentMethod are required and must be valid",
 		})
 	}
 
-	// Validate request
-	if req.UserID == 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "User ID is required",
-		})
-	}
-
-	if req.Amount <= 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Amount must be positive",
-		})
-	}
-
-	if req.PaymentMethod == "" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Payment method is required",
-		})
-	}
-
-	// Process the request
 	response, err := c.walletUseCase.VerifyTopup(req.UserID, req.Amount, req.PaymentMethod)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return HandleError(ctx, err)
 	}
 
-	// Return response
-	return ctx.Status(fiber.StatusOK).JSON(response)
+	return SuccessResp(ctx, fiber.StatusOK, "Top-up verified successfully", response)
 }
 
 // ConfirmTopup handles the confirmation of a top-up transaction
 func (c *WalletController) ConfirmTopup(ctx *fiber.Ctx) error {
-	// Parse request body
 	var req dto.ConfirmRequest
 	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request format",
-		})
+		return HandleError(ctx, err)
 	}
 
-	// Validate request
 	if req.TransactionID == 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Transaction ID is required",
+		return ctx.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
+			Status:  fiber.StatusBadRequest,
+			Message: "Transaction ID is required",
 		})
 	}
 
-	// Process the request
 	transaction, wallet, err := c.walletUseCase.ConfirmTopup(req.TransactionID)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return HandleError(ctx, err)
 	}
+
 	response := dto.ConfirmResponse{
 		TransactionID: transaction.ID,
 		UserID:        transaction.UserID,
@@ -90,8 +66,8 @@ func (c *WalletController) ConfirmTopup(ctx *fiber.Ctx) error {
 		Status:        transaction.Status.String(),
 		Balance:       wallet.Balance.Amount(),
 	}
-	// Return response
-	return ctx.Status(fiber.StatusOK).JSON(response)
+
+	return SuccessResp(ctx, fiber.StatusOK, "Top-up confirmed successfully", response)
 }
 
 // RegisterRoutes registers the routes for the wallet controller

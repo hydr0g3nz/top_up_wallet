@@ -11,7 +11,6 @@ import (
 	"github.com/hydr0g3nz/wallet_topup_system/internal/adapter/repository/postgresql/repository"
 	usecase "github.com/hydr0g3nz/wallet_topup_system/internal/application"
 	"github.com/hydr0g3nz/wallet_topup_system/internal/infrastructure"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -27,17 +26,20 @@ func main() {
 	// // Connect to database
 	db, err := infrastructure.ConnectDB(&config.Database)
 	if err != nil {
-		logger.Fatal("Failed to connect to database", zap.Error(err))
+		logger.Fatal("Failed to connect to database", map[string]interface{}{
+			"error": err.Error()})
 	}
 
 	// Run migrations
 	if err := infrastructure.MigrateDB(db); err != nil {
-		logger.Fatal("Failed to run database migrations", zap.Error(err))
+		logger.Fatal("Failed to run database migrations", map[string]interface{}{
+			"error": err.Error()})
 	}
 
 	// Seed database with initial data
 	if err := infrastructure.SeedDB(db); err != nil {
-		logger.Fatal("Failed to seed database", zap.Error(err))
+		logger.Fatal("Failed to seed database", map[string]interface{}{
+			"error": err.Error()})
 	}
 
 	cache := infrastructure.NewRedisClient(config.Cache)
@@ -46,9 +48,10 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
 	walletRepo := repository.NewWalletRepository(db)
+	txRepo := repository.NewDBTransactionRepository(db)
 
 	// Initialize use cases
-	walletUsecase := usecase.NewWalletUsecase(userRepo, transactionRepo, walletRepo, cache, nil, logger)
+	walletUsecase := usecase.NewWalletUsecase(userRepo, transactionRepo, walletRepo, cache, txRepo, logger, *config)
 
 	// Setup server
 	server := infrastructure.NewFiber(infrastructure.ServerConfig{
@@ -59,10 +62,11 @@ func main() {
 	})
 	registerRoutes(server, walletUsecase)
 	// Start server
-	logger.Info("Starting server", zap.String("port", config.Server.Port))
+	logger.Info("Starting server", map[string]interface{}{"port": config.Server.Port})
 
 	if err := server.Listen(fmt.Sprintf(":%s", config.Server.Port)); err != nil {
-		logger.Fatal("Failed to start server", zap.Error(err))
+		logger.Fatal("Failed to start server", map[string]interface{}{
+			"error": err.Error()})
 	}
 }
 

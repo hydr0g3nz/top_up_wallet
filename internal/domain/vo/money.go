@@ -1,6 +1,7 @@
 package vo
 
 import (
+	"encoding/json"
 	"fmt"
 
 	err "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
@@ -38,4 +39,11 @@ func (m Money) IsZero() bool {
 
 func (m Money) String() string {
 	return fmt.Sprintf("%.2f", m.amount)
+}
+func (m Money) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.amount)
+}
+
+func (m *Money) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &m.amount)
 }

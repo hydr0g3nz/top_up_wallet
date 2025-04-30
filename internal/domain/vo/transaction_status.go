@@ -1,8 +1,9 @@
 package vo
 
 import (
-	"errors"
 	"strings"
+
+	errs "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
 )
 
 type TransactionStatus string
@@ -26,7 +27,7 @@ func (s TransactionStatus) Valid() bool {
 func NewTransactionStatus(status string) (TransactionStatus, error) {
 	s := TransactionStatus(strings.ToLower(status))
 	if !s.Valid() {
-		return "", errors.New("invalid transaction status")
+		return "", errs.ErrInvalidTransactionStatus
 	}
 	return s, nil
 }
