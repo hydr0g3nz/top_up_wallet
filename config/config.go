@@ -15,9 +15,9 @@ type Config struct {
 	Database infrastructure.DBConfig
 	Cache    infrastructure.CacheConfig
 	LogLevel string
-	App      appConfig
+	App      AppConfig
 }
-type appConfig struct {
+type AppConfig struct {
 	MaxAcceptedAmount float64
 }
 
@@ -65,7 +65,7 @@ func LoadFromEnv() *Config {
 			Password: getEnv("REDIS_PASSWORD", ""),
 			Db:       getEnvAsInt("REDIS_DB", 0),
 		},
-		App: appConfig{
+		App: AppConfig{
 			MaxAcceptedAmount: getEnvAsFloat("MAX_ACCEPTED_AMOUNT", 100000.0),
 		},
 		LogLevel: getEnv("LOG_LEVEL", "info"),
