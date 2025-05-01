@@ -5,7 +5,7 @@ Follow these steps to get the project up and running locally using Docker Compos
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/hydr0g3nz/wallet_topup_system.git
+    git clone https://github.com/hydr0g3nz/top_up_wallet.git
     cd wallet_topup_system
     ```
     Replace `<repository_url>` with the actual URL of your repository and `<repository_directory>` with the resulting directory name.
