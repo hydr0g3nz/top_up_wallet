@@ -90,3 +90,102 @@ To stop the running containers:
 
 ```bash
 docker compose down
+```
+## Core Features
+
+### 1. Wallet Top-up Verification
+
+* Description: Validates user top-up requests and creates transaction records
+* Key Functionality:
+	+ User ID validation
+	+ Amount validation against system limits
+	+ Payment method validation
+	+ Transaction creation with "verified" status
+	+ 15-minute expiration time for pending transactions
+	+ Cache storage for optimized retrieval
+
+### 2. Top-up Confirmation
+
+* Description: Processes and finalizes verified top-up requests
+* Key Functionality:
+	+ Transaction verification status check
+	+ Expiration time validation
+	+ Atomic wallet balance update
+	+ Transaction status update to "completed"
+	+ Cache invalidation after completion
+
+### 3. Wallet Management
+
+* Description: Handles user wallet data and operations
+* Key Functionality:
+	+ Balance storage and retrieval
+	+ Secure balance updates
+	+ Transaction-based operations for data integrity
+
+### 4. User Authentication
+
+* Description: Ensures top-up requests come from valid users
+* Key Functionality:
+	+ User existence validation
+	+ User data retrieval for transactions
+
+## Supporting Features
+
+### 1. Redis Caching
+
+* Description: Performance enhancement through distributed caching
+* Key Functionality:
+	+ Transaction data caching
+	+ Configurable expiration times
+	+ Reduced database load for frequent operations
+
+### 2. Database Transactions
+
+* Description: Ensures data integrity across multi-step operations
+* Key Functionality:
+	+ Atomic operations for wallet updates and transaction status changes
+	+ Automatic rollback on errors
+	+ Transaction-scoped repositories
+
+### 3. Validation System
+
+* Description: Enforces business rules and data integrity
+* Key Functionality:
+	+ Maximum amount validation
+	+ Negative amount prevention
+	+ Payment method validation
+	+ Transaction status validation
+
+### 4. Transaction Status Management
+
+* Description: Handles the lifecycle of transactions
+* Key Functionality:
+	+ Multiple status support: verified, completed, failed, expired
+	+ Automatic status transitions
+	+ Status-based operation restrictions
+
+### 5. Payment Method Support
+
+* Description: Processes different payment method types
+* Key Functionality:
+	+ Credit card payment support
+	+ Extensible design for additional payment methods
+
+## Technical Architecture
+
+The system is built using Go with a Clean Architecture approach:
+
+* Domain Layer: Core business logic and entities
+* Application Layer: Use cases and business rules
+* Infrastructure Layer: External interfaces (database, cache, API)
+* Adapter Layer: Controllers and data transformations
+
+## Deployment
+
+* Containerized with Docker and Docker Compose
+* Three main services:
+	+ Go application
+	+ PostgreSQL database
+	+ Redis cache
+* Environment variable configuration
+* Easy local development setup
