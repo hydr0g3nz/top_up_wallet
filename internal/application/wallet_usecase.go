@@ -18,8 +18,8 @@ import (
 )
 
 type WalletUsecase interface {
-	VerifyTopup(userID uint, amount float64, paymentMethod string) (transaction.Transaction, error)
-	ConfirmTopup(transactionID uint) (transaction.Transaction, wallet.Wallet, error)
+	VerifyTopup(ctx context.Context, userID uint, amount float64, paymentMethod string) (transaction.Transaction, error)
+	ConfirmTopup(ctx context.Context, transactionID uint) (transaction.Transaction, wallet.Wallet, error)
 }
 
 // WalletUsecase handles the business logic for wallet top-up operations
@@ -28,7 +28,7 @@ type WalletUsecaseImpl struct {
 	transactionRepo transaction.Repository
 	walletRepo      wallet.Repository
 	cache           cache.CacheService
-	tx              domain.DBTransaction // atomic transaction
+	tx              domain.TxManager // atomic transaction
 	repoTx          domain.Repository
 	logger          logger.Logger
 	cfg             config.Config
@@ -40,7 +40,7 @@ func NewWalletUsecase(
 	transactionRepo transaction.Repository,
 	walletRepo wallet.Repository,
 	cache cache.CacheService,
-	tx domain.DBTransaction,
+	tx domain.TxManager,
 	logger logger.Logger,
 	config config.Config,
 
@@ -59,7 +59,7 @@ func NewWalletUsecase(
 }
 
 // VerifyTopup verifies a top-up request and creates a transaction with "verified" status
-func (uc *WalletUsecaseImpl) VerifyTopup(userID uint, amount float64, paymentMethod string) (transaction.Transaction, error) {
+func (uc *WalletUsecaseImpl) VerifyTopup(ctx context.Context, userID uint, amount float64, paymentMethod string) (transaction.Transaction, error) {
 	// Check if user exists
 	if amount > uc.cfg.App.MaxAcceptedAmount {
 		return transaction.Transaction{}, errs.ErrAmountExceedsLimit
@@ -73,7 +73,7 @@ func (uc *WalletUsecaseImpl) VerifyTopup(userID uint, amount float64, paymentMet
 		return transaction.Transaction{}, err
 	}
 	// Save transaction
-	id, err := uc.transactionRepo.Create(newTransaction)
+	id, err := uc.transactionRepo.Create(ctx, newTransaction)
 	if err != nil {
 		return transaction.Transaction{}, err
 	}
@@ -90,11 +90,21 @@ func (uc *WalletUsecaseImpl) VerifyTopup(userID uint, amount float64, paymentMet
 }
 
 // ConfirmTopup confirms a previously verified transaction and updates the wallet balance
-func (uc *WalletUsecaseImpl) ConfirmTopup(transactionID uint) (transaction.Transaction, wallet.Wallet, error) {
+func (uc *WalletUsecaseImpl) ConfirmTopup(ctx context.Context, transactionID uint) (transaction.Transaction, wallet.Wallet, error) {
+	txCtx, err := uc.tx.BeginTx(ctx)
+	if err != nil {
+		return transaction.Transaction{}, wallet.Wallet{}, err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			_ = uc.tx.RollbackTx(txCtx)
+			panic(r)
+		}
+	}()
 	// Try to get transaction from cache first
 	cacheKey := getTransactionCacheKey(transactionID)
 	tx := &transaction.Transaction{}
-	err := uc.cache.Get(context.Background(), cacheKey, tx)
+	err = uc.cache.Get(ctx, cacheKey, tx)
 	if err != nil {
 		uc.logger.Error("Failed to get transaction from cache", map[string]interface{}{"error": err})
 		// Get transaction from database if not found in cache
@@ -115,7 +125,7 @@ func (uc *WalletUsecaseImpl) ConfirmTopup(transactionID uint) (transaction.Trans
 	if time.Now().After(tx.ExpiresAt) {
 		// Update status to expired
 		status := vo.StatusVerified
-		err = uc.transactionRepo.Update(&transaction.TransactionFilter{ID: &tx.ID, Status: &status}, transaction.Transaction{
+		err = uc.transactionRepo.Update(ctx, &transaction.TransactionFilter{ID: &tx.ID, Status: &status}, transaction.Transaction{
 			Status: vo.StatusExpired,
 		})
 		if err != nil {
@@ -133,25 +143,32 @@ func (uc *WalletUsecaseImpl) ConfirmTopup(transactionID uint) (transaction.Trans
 	userWallet.Balance = userWallet.Balance.Add(tx.Amount)
 	tx.Status = vo.StatusCompleted
 	// Update transaction status to completed
-	err = uc.tx.DoInTransaction(func(repo domain.Repository) error {
-		// Update wallet balance
-		err = repo.WalletRepository().Update(*userWallet)
-		if err != nil {
-			return err
-		}
-		// Update transaction status to completed
-		status := vo.StatusVerified
-		err = repo.TransactionRepository().Update(&transaction.TransactionFilter{ID: &tx.ID, Status: &status}, transaction.Transaction{
-			Status: tx.Status,
-		})
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	err = uc.walletRepo.Update(txCtx, *userWallet)
 	if err != nil {
+		_ = uc.tx.RollbackTx(txCtx)
+		uc.logger.Error("Failed to update wallet", map[string]interface{}{"error": err})
 		return transaction.Transaction{}, wallet.Wallet{}, err
 	}
+	// Update transaction status to completed
+	status := vo.StatusVerified
+	err = uc.transactionRepo.Update(txCtx, &transaction.TransactionFilter{ID: &tx.ID,
+		Status: &status,
+	},
+		transaction.Transaction{
+			Status: tx.Status,
+		})
+
+	if err != nil {
+		_ = uc.tx.RollbackTx(txCtx)
+		uc.logger.Error("Failed to update transaction", map[string]interface{}{"error": err})
+		return transaction.Transaction{}, wallet.Wallet{}, err
+	}
+	_ = uc.tx.CommitTx(txCtx)
+	uc.logger.Info("Top-up confirmed", map[string]interface{}{
+		"transaction_id": tx.ID,
+		"user_id":        tx.UserID,
+		"amount":         tx.Amount,
+	})
 	// Remove from cache
 	_ = uc.cache.Delete(context.Background(), cacheKey)
 

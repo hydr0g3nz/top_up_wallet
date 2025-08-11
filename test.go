@@ -10,7 +10,41 @@ import (
 
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(12)
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
+	go func() {
+		TestConfirmTransaction()
+		wg.Done()
+	}()
 	go func() {
 		TestConfirmTransaction()
 		wg.Done()
@@ -32,11 +66,11 @@ func main() {
 }
 func TestConfirmTransaction() {
 
-	url := "http://localhost:8080/api/v1/wallet/confirm"
+	url := "http://127.0.0.1:8080/api/v1/wallet/confirm"
 	method := "POST"
 
 	payload := strings.NewReader(`{
-  "transaction_id": 30
+  "transaction_id": 11220
 }`)
 
 	client := &http.Client{}

@@ -48,10 +48,11 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
 	walletRepo := repository.NewWalletRepository(db)
-	txRepo := repository.NewDBTransactionRepository(db)
+	// txRepo := repository.NewDBTransactionRepository(db)
+	txManager := repository.NewTxManagerGorm(db)
 
 	// Initialize use cases
-	walletUsecase := usecase.NewWalletUsecase(userRepo, transactionRepo, walletRepo, cache, txRepo, logger, *config)
+	walletUsecase := usecase.NewWalletUsecase(userRepo, transactionRepo, walletRepo, cache, txManager, logger, *config)
 
 	// Setup server
 	server := infrastructure.NewFiber(infrastructure.ServerConfig{

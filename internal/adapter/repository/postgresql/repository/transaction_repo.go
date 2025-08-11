@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"github.com/hydr0g3nz/wallet_topup_system/internal/adapter/repository/postgresql/model"
+	IRepository "github.com/hydr0g3nz/wallet_topup_system/internal/domain"
 	errs "github.com/hydr0g3nz/wallet_topup_system/internal/domain/error"
 	"github.com/hydr0g3nz/wallet_topup_system/internal/domain/transaction"
 	"gorm.io/gorm"
@@ -72,15 +74,17 @@ func (r *TransactionRepository) FindById(id uint) (*transaction.Transaction, err
 	return t, nil
 }
 
-func (r *TransactionRepository) Create(transaction transaction.Transaction) (uint, error) {
+func (r *TransactionRepository) Create(ctx context.Context, transaction transaction.Transaction) (uint, error) {
+	db := r.getDB(ctx)
 	transactionModel := model.CreateTransactionFromDomain(transaction)
-	if err := r.db.Create(&transactionModel).Error; err != nil {
+	if err := db.Create(&transactionModel).Error; err != nil {
 		return 0, err
 	}
 	return transactionModel.ID, nil
 }
-func (r *TransactionRepository) Update(filter *transaction.TransactionFilter, transaction transaction.Transaction) error {
-	query := r.db.Model(&model.Transaction{})
+func (r *TransactionRepository) Update(ctx context.Context, filter *transaction.TransactionFilter, transaction transaction.Transaction) error {
+	db := r.getDB(ctx)
+	query := db.Model(&model.Transaction{})
 	query = getQueryFromTrancsactionFilter(query, filter)
 	if result := query.Updates(transaction.ToNotEmptyValueMap()); result.Error != nil {
 		return result.Error
@@ -88,4 +92,10 @@ func (r *TransactionRepository) Update(filter *transaction.TransactionFilter, tr
 		return errs.ErrNotFound
 	}
 	return nil
+}
+func (r *TransactionRepository) getDB(ctx context.Context) *gorm.DB {
+	if tx, ok := IRepository.GetTx(ctx).(*gorm.DB); ok {
+		return tx
+	}
+	return r.db.WithContext(ctx)
 }

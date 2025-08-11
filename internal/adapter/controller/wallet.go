@@ -32,7 +32,7 @@ func (c *WalletController) VerifyTopup(ctx *fiber.Ctx) error {
 		})
 	}
 
-	response, err := c.walletUseCase.VerifyTopup(req.UserID, req.Amount, req.PaymentMethod)
+	response, err := c.walletUseCase.VerifyTopup(ctx.Context(), req.UserID, req.Amount, req.PaymentMethod)
 	if err != nil {
 		return HandleError(ctx, err)
 	}
@@ -54,7 +54,7 @@ func (c *WalletController) ConfirmTopup(ctx *fiber.Ctx) error {
 		})
 	}
 
-	transaction, wallet, err := c.walletUseCase.ConfirmTopup(req.TransactionID)
+	transaction, wallet, err := c.walletUseCase.ConfirmTopup(ctx.Context(), req.TransactionID)
 	if err != nil {
 		return HandleError(ctx, err)
 	}
