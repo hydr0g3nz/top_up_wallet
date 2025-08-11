@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/hydr0g3nz/wallet_topup_system/internal/domain"
 	"github.com/hydr0g3nz/wallet_topup_system/internal/domain/transaction"
 	"github.com/hydr0g3nz/wallet_topup_system/internal/domain/user"
@@ -21,6 +23,7 @@ func (d *DBTransactionRepository) DoInTransaction(fn func(repo domain.Repository
 	if tx.Error != nil {
 		return tx.Error
 	}
+	fmt.Println("start transaction")
 
 	repoCtx := &RepositoryTransaction{
 		transactionRepo: NewTransactionRepository(tx),

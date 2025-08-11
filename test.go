@@ -19,6 +19,7 @@ func main() {
 		TestConfirmTransaction()
 		wg.Done()
 	}()
+
 	go func() {
 		TestConfirmTransaction()
 		wg.Done()
